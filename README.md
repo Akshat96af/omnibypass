@@ -1,48 +1,68 @@
 # OmniBypass Pro ⚡
 
-![Platform](https://img.shields.io/badge/Platform-Tampermonkey-8A2BE2?style=for-the-badge)
-![License](https://img.shields.io/badge/License-MIT-00F0FF?style=for-the-badge)
-![Stage](https://img.shields.io/badge/Environment-Production--Ready-FF003C?style=for-the-badge)
+Tired of seeing constant pop-up ads, "Wait 15 seconds to continue" timers, and annoying redirect loops just to get a simple download link? OmniBypass Pro is a custom Tampermonkey user script designed to completely cut through that junk and save you time. 
 
-An ultra-premium, high-performance web automation engine and ad-cleaner. OmniBypass Pro is engineered as a lightweight client-side payload running inside an isolated sandbox to accelerate countdown timers, clean deep-nested tracking domains, strip forced redirects, and automatically intercept destination nodes across the web.
+It speeds up countdown clocks, sweeps away aggressive ad pop-ups, and auto-clicks "Continue" or "Download" buttons the second they are ready.
 
 ---
 
-## 💎 Core Architecture & Features
+## 💎 What It Does
 
-* **⚡ Synchronous Timer Acceleration:** Programmatically hooks into the global execution context (`setTimeout`, `setInterval`, and `Date.now`) to force a 5x velocity increase on shortener countdown milestones.
-* **🚫 Deep-Packet Ad & Anti-Adblock Cleaner:** Aggressively clears forced tracking domains, elements, hidden overlay grids, and intrusive anti-adblock modals directly at `document-start`.
-* **🤖 Autonomous Pipeline Execution:** Real-time spatial tracking auto-scrolls directly to countdown sequences and handles automated form submissions or button engagement (`click()`) once nodes are initialized.
-* **🎯 Target Node Interception:** Built-in pattern recognition engine designed to isolate and expose raw hidden destination download pointers directly into a global minimalist UI controller panel.
-* **🔒 Isolated Operational Guardrails:** Embedded system exclusions guarantee that the payload automatically turns off on highly sensitive domains (e.g., banking gateways, auth parameters, major cloud workspaces).
+* **⚡ Kills Countdown Timers:** Speeds up `setTimeout` and `setInterval` clocks on shortener pages by 5x so you don't have to sit around waiting.
+* **🚫 Aggressive Ad & Overlay Blocker:** Instantly wipes out pop-ups, invisible click-jacking layers, and annoying anti-adblock blocker warnings.
+* **🤖 Auto Scroll & Click:** Automatically hunts down the active timer on the page, scrolls it into view, and clicks the "Get Link", "Continue", or "Download" button for you.
+* **🎯 Target Link Grabber:** Scans the page background, extracts the final destination file link, and drops it right into your on-screen panel.
+* **🔒 Safe Domain Exclusions:** Automatically turns completely off on important sites like Google, GitHub, WhatsApp, Netflix, and social media so your normal browsing and sign-ins never break.
 
 ---
 
 ## 🚀 One-Click Installation
 
-If you already have a browser userscript manager configured, click the deployment shield below to instantly inject the core payload:
+If you already have a browser user script manager extension active, just click the link below to load and install the script instantly:
 
-[![Deploy OmniBypass Payload](https://img.shields.io/badge/Deploy_Payload-OmniBypass--Pro-00F0FF?style=for-the-badge&logo=visual-studio-code&logoColor=00F0FF)](https://raw.githubusercontent.com/akshat96af/YOUR_REPOSITORY_NAME/main/omnibypass.user.js)
+👉 [Install OmniBypass Pro Script](https://raw.githubusercontent.com/akshat96af/YOUR_REPOSITORY_NAME/main/omnibypass.user.js)
 
-*(Note: Ensure you replace `YOUR_REPOSITORY_NAME` in the link above with your actual GitHub repository string once pushed).*
+*(Note: Don't forget to swap out `YOUR_REPOSITORY_NAME` with your actual GitHub repository name after you push your code!)*
 
 ---
 
-## 🛠️ Manual Implementation Setup
+## 🛠️ Manual Installation Guide
 
-### Step 1: Initialize the Execution Sandbox
-To parse and run native JavaScript hooks within your web environment, you must install the **Tampermonkey** extension for your target web browser ecosystem:
-* [Tampermonkey Core Infrastructure](https://www.tampermonkey.net/)
+If the link above doesn't trigger automatically, follow these simple steps:
 
-### Step 2: Inject the Script Payload
-1. Click the Tampermonkey icon in your browser toolbar and enter the **Dashboard**.
-2. Select the **Utilities** utility module or choose the **+ (Add Script)** configuration tab.
-3. Open `omnibypass.user.js` from this workspace directory, select the complete source, and copy it.
-4. Paste the raw script syntax inside the text compiling interface.
-5. Save the configuration frame (`Ctrl + S` or `File -> Save`).
+### Step 1: Install Tampermonkey
+You need a script manager extension installed on your desktop browser to run this file:
+* [Get Tampermonkey for your Browser](https://www.tampermonkey.net/)
 
-### Step 3: Run the Local Hub (Optional Landing Page)
-To host the highly interactive, premium 3D WebGL deployment dashboard (`index.html`), simply spin up a lightweight local static server or attach it inside a GitHub Pages instance:
+### Step 2: Add the Code
+1. Open your browser, click the Tampermonkey extension icon, and select **Dashboard**.
+2. Click the **+ (Add Script)** tab or go to **Utilities**.
+3. Copy the entire raw code inside the `omnibypass.user.js` file from this repository.
+4. Paste it entirely into the text editor box inside Tampermonkey.
+5. Click **File -> Save** (or hit `Ctrl + S`).
+
+---
+
+## 🎛️ Keyboard Shortcuts
+
+While browsing, you don't even need to open the visual UI panel to change settings—you can hit these numbers on your keyboard to toggle features on the fly:
+
+| Key | Action |
+| :---: | :--- |
+| **`1`** | Toggle **5x Fast-Forward Timer** |
+| **`2`** | Toggle **Auto Scroll** directly to active timers |
+| **`3`** | Toggle **Auto Click** for ready links/buttons |
+| **`4`** | Toggle **Ad Blocker Shield** |
+| **`5`** | Instantly open the extracted target download link |
+
+*Note: Shortcuts automatically pause whenever you are typing inside search boxes, text forms, or input windows so you can type normally.*
+
+---
+
+## 🛠️ Running the Premium Interactive Page
+
+If you want to view or host the animated, high-end 3D background page (`index.html`) locally on your computer to show off the setup process, open your terminal inside the project folder and spin up a quick local web server:
+
 ```bash
-# Example via Python static HTTP module
+# Using Python
 python -m http.server 8080
