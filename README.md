@@ -8,11 +8,11 @@ It’s a straightforward Tampermonkey script that cuts straight through the garb
 
 ## 💎 What it actually does
 
-* **⚡ Fast-Forwards Countdown Timers:** Speeds up boring `setTimeout` and `setInterval` loops by 5x so pages load instantly.
-* **🚫 Blocks Aggressive Ads & Pop-ups:** Wipes out invisible overlays, shady link opens, and annoying "Disable your Adblocker" warnings.
-* **🤖 Handles Scrolling & Clicking:** Automatically tracks down the timer, scrolls it into view, and clicks "Get Link" or "Download" when it's ready.
-* **🎯 Grabs Hidden Destination Links:** Scans the background to pull the actual download link directly onto your screen.
-* **🔒 Leaves Normal Sites Alone:** Automatically stays completely off on major sites like Google, GitHub, WhatsApp, Netflix, and social media so your regular logins and browsing never break.
+* **⏳ Fast-Forwards Countdown Timers:** Speeds up boring `setTimeout` and `setInterval` loops by 5x so pages load instantly.
+* **🛡️ Blocks Aggressive Ads & Pop-ups:** Wipes out invisible overlays, shady link opens, and annoying "Disable your Adblocker" warnings.
+* **🖱️ Handles Scrolling & Clicking:** Automatically tracks down the timer, scrolls it into view, and clicks "Get Link" or "Download" when it's ready.
+* **🔗 Grabs Hidden Destination Links:** Scans the background to pull the actual download link directly onto your screen.
+* **👁️ Leaves Normal Sites Alone:** Automatically stays completely off on major sites like Google, GitHub, WhatsApp, Netflix, and social media so your regular logins and browsing never break.
 
 ---
 
