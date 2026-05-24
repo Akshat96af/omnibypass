@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en" class="antialiased selection:bg-cyan-500/30">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="OmniBypass Pro — an advanced userscript deployment platform. Install the Tampermonkey runtime and deploy custom automation scripts with one click.">
+    <meta name="robots" content="index, follow">
+    <title>OmniBypass | Pro</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'], mono: ['JetBrains Mono', 'monospace'] },
+                    colors: {
+                        cyber: { dark: '#0a0a12', cyan: '#00F0FF', pink: '#FF003C', purple: '#8A2BE2' }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            cursor: none !important;
+        }
+
+        @media (pointer: coarse) {
+            * {
+                cursor: auto !important;
+            }
+
+            #cursor-core,
+            #cursor-ring {
+                display: none !important;
+            }
+        }
+
+        body {
+            background-color: #0a0a12;
+            overflow: hidden;
+            color: #fff;
+            width: 100vw;
+            height: 100vh;
+            font-family: 'Inter', sans-serif;
+        }
+
+        #webgl-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        #cursor-core {
+            position: fixed;
+            width: 8px;
+            height: 8px;
+            background: #8A2BE2;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9999;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 10px #8A2BE2;
+            transition: background 0.3s ease, box-shadow 0.3s ease;
+            will-change: transform;
+        }
+
+        #cursor-ring {
+            position: fixed;
+            width: 40px;
+            height: 40px;
+            border: 1px solid rgba(138, 43, 226, 0.5);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9998;
+            transform: translate(-50%, -50%);
+            transition: width 0.3s ease, height 0.3s ease, border-color 0.3s ease, background 0.3s ease;
+            will-change: transform;
+        }
+
+        .hover-state #cursor-ring {
+            width: 60px;
+            height: 60px;
+            border-color: #ffffff;
+            border-width: 2px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(2px);
+        }
+
+        .hover-state #cursor-core {
+            background: #ffffff;
+            box-shadow: 0 0 15px #ffffff;
+        }
+
+        .hover-phase1 #cursor-ring {
+            width: 70px;
+            height: 70px;
+            border-color: #00F0FF;
+            border-width: 2px;
+            background: rgba(0, 240, 255, 0.05);
+            backdrop-filter: blur(2px);
+        }
+
+        .hover-phase1 #cursor-core {
+            background: #00F0FF;
+            box-shadow: 0 0 20px #00F0FF;
+        }
+
+        .hover-phase2 #cursor-ring {
+            width: 70px;
+            height: 70px;
+            border-color: #FF003C;
+            border-width: 2px;
+            background: rgba(255, 0, 60, 0.05);
+            backdrop-filter: blur(2px);
+        }
+
+        .hover-phase2 #cursor-core {
+            background: #FF003C;
+            box-shadow: 0 0 20px #FF003C;
+        }
+
+        #ui-layer {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            visibility: hidden;
+        }
+
+        .glass-panel {
+            background: linear-gradient(135deg, rgba(20, 20, 30, 0.6) 0%, rgba(10, 10, 15, 0.8) 100%);
+            border: 1px solid rgba(0, 240, 255, 0.2);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            transform-style: preserve-3d;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(0, 240, 255, 0.05);
+            transition: border-color 0.4s ease;
+            will-change: transform;
+        }
+
+        .glass-panel:hover {
+            border-color: #00F0FF;
+        }
+
+        .glass-panel-pink {
+            border-color: rgba(255, 0, 60, 0.2);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(255, 0, 60, 0.05);
+        }
+
+        .glass-panel-pink:hover {
+            border-color: #FF003C;
+        }
+
+        .translate-z-10 {
+            transform: translateZ(20px);
+        }
+
+        .translate-z-20 {
+            transform: translateZ(40px);
+        }
+
+        .translate-z-30 {
+            transform: translateZ(60px);
+        }
+
+        .glitch-text {
+            position: relative;
+            display: inline-block;
+            font-weight: 800;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .char {
+            display: inline-block;
+            position: relative;
+            color: #b0b0b0;
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            will-change: transform, opacity;
+        }
+
+        .char.active {
+            color: #fff;
+            text-shadow:
+                0 0 10px rgba(255, 255, 255, 0.9),
+                0 0 25px rgba(255, 255, 255, 0.5);
+            transform: scale(1.15) translateY(-3px);
+            z-index: 10;
+        }
+
+        @keyframes textBreathe {
+            0% {
+                opacity: 0.7;
+                filter: drop-shadow(0 0 0px transparent);
+            }
+
+            50% {
+                opacity: 1;
+                filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.4));
+            }
+
+            100% {
+                opacity: 0.7;
+                filter: drop-shadow(0 0 0px transparent);
+            }
+        }
+
+        .animate-text-breathe {
+            animation: textBreathe 4s ease-in-out infinite;
+            will-change: opacity, filter;
+        }
+
+        .premium-sweep {
+            background: linear-gradient(to right, #6b7280 20%, #ffffff 50%, #6b7280 80%);
+            background-size: 200% auto;
+            color: transparent;
+            -webkit-background-clip: text;
+            background-clip: text;
+            animation: textSweep 3s linear infinite;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), filter 0.4s ease, letter-spacing 0.4s ease;
+            display: inline-block;
+            will-change: transform, filter, letter-spacing;
+        }
+
+        @keyframes textSweep {
+            to {
+                background-position: 200% center;
+            }
+        }
+
+        .hero-sub.premium-sweep:hover {
+            filter: drop-shadow(0 0 10px rgba(0, 240, 255, 0.5));
+            transform: scale(1.02) translateY(-2px);
+            letter-spacing: 0.02em;
+        }
+
+        #footer-text:hover .premium-sweep {
+            filter: drop-shadow(0 0 10px rgba(255, 0, 60, 0.5));
+            transform: scale(1.05);
+            letter-spacing: 0.45em !important;
+        }
+
+        .cyber-btn {
+            position: relative;
+            overflow: hidden;
+            background: transparent;
+            border: 1px solid #00F0FF;
+            color: #00F0FF;
+            text-transform: uppercase;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            transition: all 0.3s ease;
+        }
+
+        .cyber-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: #00F0FF;
+            transition: left 0.4s cubic-bezier(0.86, 0, 0.07, 1);
+            z-index: -1;
+        }
+
+        .cyber-btn:hover {
+            color: #0a0a12;
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.6);
+        }
+
+        .cyber-btn:hover::before {
+            left: 0;
+        }
+
+        .btn-pink {
+            border-color: #FF003C;
+            color: #FF003C;
+        }
+
+        .btn-pink::before {
+            background: #FF003C;
+        }
+
+        .btn-pink:hover {
+            color: #fff;
+            box-shadow: 0 0 20px rgba(255, 0, 60, 0.6);
+        }
+    </style>
+</head>
+
+<body>
+
+    <canvas id="webgl-canvas"></canvas>
+
+    <div id="cursor-core"></div>
+    <div id="cursor-ring"></div>
+
+    <main id="ui-layer" class="px-6">
+
+        <header
+            class="absolute top-8 w-full max-w-6xl px-8 flex justify-center items-center text-cyber-cyan font-mono text-[11px] tracking-[0.3em] uppercase">
+            <div class="flex items-center gap-3 interactive-element">
+                <i data-lucide="activity" class="w-5 h-5 text-cyber-pink animate-pulse"></i>
+                <span class="header-text">Omni//Bypass Pro</span>
+            </div>
+        </header>
+
+        <div class="text-center mb-16 z-10 w-full max-w-4xl">
+            <h1 class="text-5xl md:text-7xl font-extrabold tracking-tighter text-white mb-6 drop-shadow-2xl hero-title glitch-text"
+                id="main-title">
+                SKIP THE RESTRICTIONS
+            </h1>
+            <p class="premium-sweep font-light text-base md:text-lg max-w-2xl mx-auto hero-sub interactive-element"
+                data-cursor="phase1">
+                An advanced execution environment designed for seamless web automation. Deploy the required runtime,
+                initialize the logic sequence, and elevate your browsing experience.
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-5xl relative z-10">
+
+            <div class="glass-panel p-10 flex flex-col group card-element interactive-element" data-cursor="phase1">
+                <div class="flex justify-between items-start mb-8 transform translate-z-10">
+                    <div
+                        class="w-14 h-14 rounded-full border-2 border-cyber-cyan/30 flex items-center justify-center bg-cyber-cyan/10 group-hover:bg-cyber-cyan/20 transition-all duration-500 group-hover:scale-110">
+                        <i data-lucide="cpu" class="w-6 h-6 text-cyber-cyan"></i>
+                    </div>
+                    <span class="font-mono text-sm text-cyber-cyan/50">STEP 1</span>
+                </div>
+                <h2 class="text-2xl font-bold text-white mb-4 transform translate-z-20 animate-text-breathe">
+                    Installation
+                </h2>
+                <p
+                    class="text-gray-300 text-sm leading-relaxed mb-10 flex-grow transform translate-z-10 animate-text-breathe">
+                    Tampermonkey serves as a powerful userscript manager for modern web browsers. It provides the
+                    necessary runtime environment to execute custom JavaScript payloads, enabling comprehensive
+                    modification and enhancement of website functionality.
+                </p>
+                <div class="transform translate-z-30 w-full">
+                    <a href="https://chromewebstore.google.com/detail/tampermonkey/dhdgffkkebhmkfjojejmpbldmpobfkfo"
+                        target="_blank" rel="noopener noreferrer"
+                        class="cyber-btn w-full py-4 px-6 rounded flex items-center justify-center gap-3">
+                        <span>INSTALL TAMPERMONKEY</span>
+                        <i data-lucide="external-link" class="w-4 h-4"></i>
+                    </a>
+                </div>
+            </div>
+
+            <div class="glass-panel glass-panel-pink p-10 flex flex-col group card-element interactive-element"
+                data-cursor="phase2">
+                <div class="flex justify-between items-start mb-8 transform translate-z-10">
+                    <div
+                        class="w-14 h-14 rounded-full border-2 border-cyber-pink/30 flex items-center justify-center bg-cyber-pink/10 group-hover:bg-cyber-pink/20 transition-all duration-500 group-hover:scale-110">
+                        <i data-lucide="zap" class="w-6 h-6 text-cyber-pink"></i>
+                    </div>
+                    <span class="font-mono text-sm text-cyber-pink/50">STEP 2</span>
+                </div>
+                <h2 class="text-2xl font-bold text-white mb-4 transform translate-z-20 animate-text-breathe">Install
+                    Script</h2>
+                <p
+                    class="text-gray-300 text-sm leading-relaxed mb-10 flex-grow transform translate-z-10 animate-text-breathe">
+                    Initialize the OmniBypass logic sequence. Ensure that the Tampermonkey extension is actively running
+                    and properly configured within your browser before deploying the local script injection.
+                </p>
+                <div class="transform translate-z-30 w-full">
+                    <a href="javascript:void(0)" onclick="window.location.href='./omnibypass.user.js';"
+                        class="cyber-btn btn-pink w-full py-4 px-6 rounded flex items-center justify-center gap-3">
+                        <span>INSTALL SCRIPT</span>
+                        <i data-lucide="terminal-square" class="w-4 h-4"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <footer class="absolute bottom-8 z-10 w-full text-center">
+            <a href="https://github.com/akshat96af" target="_blank" rel="noopener noreferrer"
+                class="font-mono text-[11px] text-gray-500 transition-colors duration-300 interactive-element inline-flex items-center gap-2 group"
+                id="footer-text" data-cursor="phase2">
+                <i data-lucide="code-2" class="w-4 h-4 group-hover:text-cyber-pink transition-colors"></i>
+                <span class="footer-chars premium-sweep uppercase">A Project By akshat96af</span>
+            </a>
+        </footer>
+    </main>
+
+    <script>
+        lucide.createIcons();
+
+        const cursorCore = document.getElementById('cursor-core');
+        const cursorRing = document.getElementById('cursor-ring');
+        let mouseX = window.innerWidth / 2;
+        let mouseY = window.innerHeight / 2;
+        let ringX = mouseX;
+        let ringY = mouseY;
+
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+            cursorCore.style.transform = `translate(${mouseX}px, ${mouseY}px) translate(-50%, -50%)`;
+
+            const activeElement = e.target.closest('.interactive-element, a, button');
+
+            if (activeElement) {
+                if (activeElement.closest('[data-cursor="phase1"]')) {
+                    document.body.classList.add('hover-phase1');
+                    document.body.classList.remove('hover-state', 'hover-phase2');
+                } else if (activeElement.closest('[data-cursor="phase2"]')) {
+                    document.body.classList.add('hover-phase2');
+                    document.body.classList.remove('hover-state', 'hover-phase1');
+                } else {
+                    document.body.classList.add('hover-state');
+                    document.body.classList.remove('hover-phase1', 'hover-phase2');
+                }
+            } else {
+                document.body.classList.remove('hover-state', 'hover-phase1', 'hover-phase2');
+            }
+        });
+
+        gsap.ticker.add(() => {
+            ringX += (mouseX - ringX) * 0.18;
+            ringY += (mouseY - ringY) * 0.18;
+            cursorRing.style.transform = `translate(${ringX}px, ${ringY}px) translate(-50%, -50%)`;
+        });
+
+        const canvas = document.getElementById('webgl-canvas');
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x0a0a12, 0.002);
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: false, powerPreference: "high-performance" });
+
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+        const geometry = new THREE.PlaneGeometry(200, 100, 30, 15);
+        const count = geometry.attributes.position.count;
+
+        for (let i = 0; i < count; i++) {
+            const x = geometry.attributes.position.getX(i);
+            const y = geometry.attributes.position.getY(i);
+            const z = Math.sin(x * 0.1) * Math.cos(y * 0.1) * 5;
+            geometry.attributes.position.setZ(i, z);
+        }
+
+        const material = new THREE.MeshBasicMaterial({
+            color: 0x00F0FF,
+            wireframe: true,
+            transparent: true,
+            opacity: 0.15
+        });
+
+        const plane = new THREE.Mesh(geometry, material);
+        plane.rotation.x = -Math.PI / 2;
+        plane.position.y = -15;
+        scene.add(plane);
+
+        const particlesGeometry = new THREE.BufferGeometry();
+        const particlesCount = 800;
+        const posArray = new Float32Array(particlesCount * 3);
+        const colorsArray = new Float32Array(particlesCount * 3);
+
+        const color1 = new THREE.Color(0x00F0FF);
+        const color2 = new THREE.Color(0xFF003C);
+
+        for (let i = 0; i < particlesCount * 3; i += 3) {
+            posArray[i] = (Math.random() - 0.5) * 150;
+            posArray[i + 1] = (Math.random() - 0.5) * 150;
+            posArray[i + 2] = (Math.random() - 0.5) * 150;
+
+            const mixedColor = color1.clone().lerp(color2, Math.random());
+            colorsArray[i] = mixedColor.r;
+            colorsArray[i + 1] = mixedColor.g;
+            colorsArray[i + 2] = mixedColor.b;
+        }
+
+        particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+        particlesGeometry.setAttribute('color', new THREE.BufferAttribute(colorsArray, 3));
+
+        const particlesMaterial = new THREE.PointsMaterial({
+            size: 0.2,
+            vertexColors: true,
+            transparent: true,
+            opacity: 0.8,
+            blending: THREE.AdditiveBlending
+        });
+
+        const particlesMesh = new THREE.Points(particlesGeometry, particlesMaterial);
+        scene.add(particlesMesh);
+
+        camera.position.z = 30;
+        camera.position.y = 5;
+
+        let targetX = 0;
+        let targetY = 0;
+        let windowHalfX = window.innerWidth / 2;
+        let windowHalfY = window.innerHeight / 2;
+
+        document.addEventListener('mousemove', (event) => {
+            targetX = (event.clientX - windowHalfX) * 0.02;
+            targetY = (event.clientY - windowHalfY) * 0.02;
+        });
+
+        const clock = new THREE.Clock();
+        const positions = plane.geometry.attributes.position;
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const elapsedTime = clock.getElapsedTime();
+
+            for (let i = 0; i < count; i++) {
+                const x = positions.getX(i);
+                const y = positions.getY(i);
+                const z = Math.sin(x * 0.1 + elapsedTime) * Math.cos(y * 0.1 + elapsedTime) * 5;
+                positions.setZ(i, z);
+            }
+            positions.needsUpdate = true;
+
+            particlesMesh.rotation.y = -elapsedTime * 0.05;
+            particlesMesh.rotation.x = elapsedTime * 0.02;
+
+            camera.position.x += (targetX - camera.position.x) * 0.05;
+            camera.position.y += (-targetY - camera.position.y + 5) * 0.05;
+            camera.lookAt(scene.position);
+
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            windowHalfX = window.innerWidth / 2;
+            windowHalfY = window.innerHeight / 2;
+        });
+
+        const titleEl = document.getElementById('main-title');
+        const text = titleEl.textContent.trim();
+        const scrambleLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&*";
+        titleEl.innerHTML = '';
+        text.split('').forEach(char => {
+            if (char === ' ') {
+                const space = document.createTextNode('\u00A0');
+                titleEl.appendChild(space);
+            } else {
+                const span = document.createElement('span');
+                span.className = 'char opacity-0 translate-y-10 inline-block';
+                span.textContent = char;
+                span.dataset.char = char;
+                titleEl.appendChild(span);
+
+                span.addEventListener('mouseover', () => {
+                    const originalChar = span.dataset.char;
+                    let iterations = 0;
+                    span.classList.add('active');
+                    const interval = setInterval(() => {
+                        span.textContent = scrambleLetters[Math.floor(Math.random() * scrambleLetters.length)];
+                        iterations++;
+                        if (iterations > 10) {
+                            clearInterval(interval);
+                            span.textContent = originalChar;
+                            span.classList.remove('active');
+                        }
+                    }, 30);
+                });
+            }
+        });
+
+        window.addEventListener('load', () => {
+            gsap.set("#ui-layer", { visibility: "visible" });
+
+            const tl = gsap.timeline();
+
+            tl.fromTo(".header-text",
+                { y: -20, opacity: 0 },
+                { y: 0, opacity: 1, duration: 0.8, ease: "power3.out" }
+            )
+                .to(".char",
+                    { y: 0, opacity: 1, duration: 0.8, stagger: 0.03, ease: "back.out(1.7)" },
+                    "-=0.4"
+                )
+                .fromTo(".hero-sub",
+                    { y: 20, opacity: 0, filter: "blur(10px)" },
+                    { y: 0, opacity: 1, filter: "blur(0px)", duration: 1, ease: "power2.out" },
+                    "-=0.4"
+                )
+                .fromTo(".card-element",
+                    { y: 50, opacity: 0, rotationX: -15, scale: 0.9 },
+                    { y: 0, opacity: 1, rotationX: 0, scale: 1, duration: 1, stagger: 0.2, ease: "expo.out" },
+                    "-=0.6"
+                )
+                .fromTo(".footer-chars",
+                    { opacity: 0, letterSpacing: "1em" },
+                    { opacity: 1, letterSpacing: "0.4em", duration: 1.5, ease: "power4.out" },
+                    "-=0.5"
+                );
+        });
+
+        document.querySelectorAll('.card-element').forEach(card => {
+            card.addEventListener('mousemove', (e) => {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                const centerX = rect.width / 2;
+                const centerY = rect.height / 2;
+
+                const rotateX = ((y - centerY) / centerY) * -12;
+                const rotateY = ((x - centerX) / centerX) * 12;
+
+                gsap.to(card, {
+                    rotationX: rotateX,
+                    rotationY: rotateY,
+                    transformPerspective: 1000,
+                    ease: "power1.out",
+                    duration: 0.4
+                });
+            });
+
+            card.addEventListener('mouseleave', () => {
+                gsap.to(card, {
+                    rotationX: 0,
+                    rotationY: 0,
+                    ease: "sine.out",
+                    duration: 0.8
+                });
+            });
+        });
+    </script>
+</body>
+
+</html>
