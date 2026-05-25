@@ -1,4 +1,4 @@
-# OmniBypass Pro ⚡
+# OmniBypass⚡
 
 Ever get stuck clicking through endless pop-up ads, staring at "Wait 15 seconds to continue" timers, or trapped in crazy redirect loops just to get a single download link? Same. That's exactly why I built OmniBypass Pro. 
 
