@@ -32,6 +32,7 @@
 // @grant        GM_setValue
 // @grant        GM_getValue
 // @grant        GM_deleteValue
+// @grant        GM_registerMenuCommand
 // @run-at       document-start
 // ==/UserScript==
 
@@ -90,6 +91,32 @@
         /[?&]__cf_chl_/.test(location.search)) {
         return;
     }
+
+    const EXCLUDE_KEY = 'om_bypass_excluded';
+    const siteKey = location.hostname.replace(/^www\./, '');
+    const matchesSite = (k) => siteKey === k || siteKey.endsWith('.' + k);
+    const loadExcluded = () => {
+        const v = GM_getValue(EXCLUDE_KEY, []);
+        return Array.isArray(v) ? v.filter((k) => typeof k === 'string') : [];
+    };
+
+    function excludeSite() {
+        const list = loadExcluded();
+        if (!list.some(matchesSite)) list.push(siteKey);
+        GM_setValue(EXCLUDE_KEY, list);
+        location.reload();
+    }
+
+    function includeSite() {
+        GM_setValue(EXCLUDE_KEY, loadExcluded().filter((k) => !matchesSite(k)));
+        location.reload();
+    }
+
+    if (loadExcluded().some(matchesSite)) {
+        if (isTopFrame) GM_registerMenuCommand('OmniBypass: enable on ' + siteKey, includeSite);
+        return;
+    }
+    if (isTopFrame) GM_registerMenuCommand('OmniBypass: disable on ' + siteKey, excludeSite);
 
     const CAPTCHA_SAFE_DOMAINS = [
         'google.com/recaptcha', 'gstatic.com/recaptcha', 'recaptcha.net',
@@ -760,6 +787,13 @@
             transition: background .15s ease;
         }
         .ghost:hover { background: rgba(255, 255, 255, 0.14); }
+        .foot { margin-top: 10px; }
+        .ghost.wide {
+            width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+            text-align: center; color: #a0a8ba;
+        }
+        .ghost.wide:hover { color: #eceef4; }
+        .ghost.armed { color: #fca5a5; border-color: rgba(248, 113, 113, 0.4); background: rgba(248, 113, 113, 0.14); }
         @media (prefers-reduced-motion: reduce) {
             *, *::before, *::after { transition-duration: 0s !important; transition-delay: 0s !important; }
         }
@@ -799,6 +833,9 @@
                     <div class="found-h"><span>Target found</span><kbd title="Press 6 to open">6</kbd></div>
                     <a id="om-final-link" href="#" target="_blank" rel="noopener noreferrer"></a>
                     <button class="ghost" id="om-copy-btn" type="button">Copy link</button>
+                </div>
+                <div class="foot">
+                    <button class="ghost wide" id="om-exclude-btn" type="button"></button>
                 </div>
             </section>
             <button class="fab" id="om-ui-minimized" type="button" aria-label="Open OmniBypass" title="Open OmniBypass">
@@ -894,6 +931,22 @@
             navigator.clipboard.writeText(href)
                 .then(() => updateStatus('Link copied'))
                 .catch(() => updateStatus('Copy blocked by the browser'));
+        });
+
+        const excludeBtn = $('om-exclude-btn');
+        const excludeLabel = 'Disable on ' + siteKey;
+        excludeBtn.textContent = excludeLabel;
+        let excludeArmed = false;
+        excludeBtn.addEventListener('click', () => {
+            if (excludeArmed) { excludeSite(); return; }
+            excludeArmed = true;
+            excludeBtn.classList.add('armed');
+            excludeBtn.textContent = 'Click again to disable on this site';
+            _st.call(w, () => {
+                excludeArmed = false;
+                excludeBtn.classList.remove('armed');
+                excludeBtn.textContent = excludeLabel;
+            }, 3500);
         });
 
         if (!statusHistory.length) updateStatus('Ready'); else renderStatus();
