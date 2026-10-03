@@ -3,7 +3,12 @@
 // @namespace    universal-bypass-final
 // @version      12.0.0
 // @description  Speeds up shortlink timers, auto-clicks continue buttons, blocks popups and ad overlays, and surfaces the final download link.
-// @author       OmniBypass
+// @author       akshat96af
+// @license      MIT
+// @homepageURL  https://github.com/Akshat96af/omnibypass
+// @supportURL   https://github.com/Akshat96af/omnibypass/issues
+// @downloadURL  https://raw.githubusercontent.com/Akshat96af/omnibypass/main/omnibypass.user.js
+// @updateURL    https://raw.githubusercontent.com/Akshat96af/omnibypass/main/omnibypass.user.js
 // @match        *://*/*
 // @exclude      *://www.google.*/*
 // @exclude      *://www.youtube.com/*
@@ -28,6 +33,19 @@
 // @exclude      *://open.spotify.com/*
 // @exclude      *://challenges.cloudflare.com/*
 // @exclude      *://challenge.cloudflare.com/*
+// @exclude      *://search.brave.com/*
+// @exclude      *://www.bing.com/*
+// @exclude      *://duckduckgo.com/*
+// @exclude      *://*.duckduckgo.com/*
+// @exclude      *://*.yahoo.com/*
+// @exclude      *://yandex.com/*
+// @exclude      *://*.ecosia.org/*
+// @exclude      *://www.startpage.com/*
+// @exclude      *://search.marginalia.nu/*
+// @exclude      *://www.perplexity.ai/*
+// @exclude      *://gemini.google.com/*
+// @exclude      *://copilot.microsoft.com/*
+// @exclude      *://*.wikipedia.org/*
 // @grant        unsafeWindow
 // @grant        GM_setValue
 // @grant        GM_getValue
@@ -203,7 +221,46 @@
         return false;
     }
 
-    const cfObserver = new MutationObserver(() => { checkCloudflare(); });
+    // Server-verified countdowns (AdLinkFly/clk.sh style): the server rejects /links/go
+    // if real elapsed time < counter, so speeding the clock only breaks the page.
+    // ponytail: DOM heuristic, add selectors here for other server-timer templates.
+    let serverTimer = false;
+    // cuty.io/cuttty.com: form#submit-form POSTs an encrypted `data` token to /go/<alias> and a
+    // _v/s.js visit tracker watches the page, so treat its 8s timer as server-side too.
+    const SERVER_TIMER_SEL = 'form#go-link[action*="/links/go"], form[action*="/links/go"] input[name="ad_form_data"], form#submit-form[action*="/go/"] input[name="data"]';
+    function checkServerTimer() {
+        if (serverTimer) return;
+        try {
+            if (document.querySelector(SERVER_TIMER_SEL) || (w.app_vars && w.app_vars.counter_start)) {
+                serverTimer = true;
+                updateStatus('Server-verified timer, speedup paused');
+            }
+        } catch (_) { }
+    }
+
+    // Custom human-check widgets (press-and-hold etc.) have no stable selector, so match
+    // visible text. Not latched: speedup resumes once the check is gone/closed.
+    // ponytail: English-only text match, add phrases for other languages if needed.
+    let humanCheck = false;
+    // olamovies' "cc-" widget (hold-ring or slider variant) has stable class names.
+    const HUMAN_CHECK_SEL = '.cc-card, .cc-hold-target, [role="slider"][aria-label="Verification slider"]';
+    const HUMAN_CHECK_TEXT =/press and hold|human check|not a robot|verify you are human/i;
+    function checkHumanWidget() {
+        try {
+            const on = !!document.body && (!!document.querySelector(HUMAN_CHECK_SEL) || HUMAN_CHECK_TEXT.test(document.body.innerText));
+            if (on === humanCheck) return;
+            humanCheck = on;
+            updateStatus(on ? 'CAPTCHA detected, timer paused' : 'CAPTCHA gone, timer resumed');
+        } catch (_) { }
+    }
+
+    // Press-and-hold human checks time the hold with the page clock; a sped-up clock
+    // makes the hold look too short/inconsistent, so run at 1x while any press is down.
+    let holding = false;
+    ['pointerdown', 'mousedown', 'touchstart'].forEach((t) => w.addEventListener(t, () => { holding = true; }, true));
+    ['pointerup', 'pointercancel', 'mouseup', 'touchend', 'touchcancel', 'dragend', 'blur'].forEach((t) => w.addEventListener(t, () => { holding = false; }, true));
+
+    const cfObserver = new MutationObserver(() => { checkCloudflare(); checkServerTimer(); });
     if (document.documentElement) {
         cfObserver.observe(document.documentElement, { childList: true, subtree: true });
     } else {
@@ -220,7 +277,7 @@
         let basePerfVirtual = basePerfReal;
 
         const sync = () => {
-            const next = cfDetected ? 1 : SPEED;
+            const next = (cfDetected || serverTimer || humanCheck || holding) ? 1 : SPEED;
             if (next === scale) return;
             const d = _dateNow();
             const p = _perfNow();
@@ -240,7 +297,7 @@
 
     const scaleDelay = (delay) => {
         const d = Number(delay);
-        if (cfDetected || SPEED <= 1 || !(d >= 50)) return delay;
+        if (cfDetected || serverTimer || humanCheck || holding || SPEED <= 1 || !(d >= 50)) return delay;
         return Math.max(Math.floor(d / SPEED), 10);
     };
 
@@ -384,9 +441,13 @@
         '#submitFree', '#final_redirect', '#download-button',
         '#surl', '#glink', '#downloadbtn', '#btnproceedsubmit',
         '.get-link', '.skip', '.btn-lg.get-link',
-        '.btn-captcha', '.download_button', '.wp2continuelink',
+        '.btn-captcha', '.download_button', '.wp2continuelink', 'button.vhit',
         '.gotlink', '#startButton', 'a[href*="continue"]'
     ];
+
+    function isSameOrigin(u) {
+        try { return new URL(u, location.href).origin === location.origin; } catch (_) { return false; }
+    }
 
     const _open = w.open;
     const fakeWin = () => ({
@@ -406,7 +467,11 @@
             return fakeWin();
         }
 
-        if (!args[1]) args[0] = '_self';
+        // Never navigate the current page away; only same-origin popups are allowed through.
+        if (!isSameOrigin(urlStr)) {
+            Logger.debug('Blocked cross-origin popup:', urlStr);
+            return fakeWin();
+        }
         return _open.call(this, url, ...args);
     };
     w.open.toString = function() { return _open.toString(); };
@@ -473,10 +538,12 @@
                 !link.closest('#om-bypass-ui-container')) {
                 
                 const target = (link.getAttribute('target') || '').toLowerCase();
-                if (target === '_blank') {
+                // Cross-origin _blank links are blocked instead of hijacking this tab,
+                // so the page we need to continue on is never lost.
+                if (target === '_blank' && !isSameOrigin(link.href)) {
                     e.preventDefault();
-                    location.href = link.href;
-                    Logger.info('Same-tab redirect:', link.href);
+                    e.stopImmediatePropagation();
+                    Logger.info('Blocked new-tab link:', link.href);
                 }
             }
         }, true);
@@ -1253,6 +1320,8 @@
 
     function run() {
         checkCloudflare();
+        checkServerTimer();
+        checkHumanWidget();
         if (halted) return;
         injectUI();
         stripPopups();
