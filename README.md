@@ -1,56 +1,71 @@
-# OmniBypass⚡
+# OmniBypass
 
-Ever get stuck clicking through endless pop-up ads, staring at "Wait 15 seconds to continue" timers, or trapped in crazy redirect loops just to get a single download link? Same. That's exactly why I built OmniBypass Pro. 
+A Tampermonkey script for shortlink and download pages. It speeds up the "wait 15 seconds" timers, blocks the pop-ups and fake overlays, clicks Continue or Download when the button becomes usable, and shows you the real destination link once the page exposes it.
 
-It’s a straightforward Tampermonkey script that cuts straight through the garbage. It fast-forwards countdown clocks, blocks annoying ad pop-ups, and clicks "Continue" or "Download" buttons the exact second they are ready.
+I built it after one too many five-page detours for a single file. It runs on every site except a short list I never want it touching (see below).
 
----
+## Install
 
-## 💎 What it actually does
+The quickest way is the [setup page](https://akshat96af.github.io/omnibypass/). If you would rather do it by hand:
 
-* **⏳ Fast-Forwards Countdown Timers:** Speeds up boring `setTimeout` and `setInterval` loops by 5x so pages load instantly.
-* **🛡️ Blocks Aggressive Ads & Pop-ups:** Wipes out invisible overlays, shady link opens, and annoying "Disable your Adblocker" warnings.
-* **🖱️ Handles Scrolling & Clicking:** Automatically tracks down the timer, scrolls it into view, and clicks "Get Link" or "Download" when it's ready.
-* **🔗 Grabs Hidden Destination Links:** Scans the background to pull the actual download link directly onto your screen.
-* **👁️ Leaves Normal Sites Alone:** Automatically stays completely off on major sites like Google, GitHub, WhatsApp, Netflix, and social media so your regular logins and browsing never break.
+1. Install [Tampermonkey](https://www.tampermonkey.net/) in your desktop browser.
+2. Open the Tampermonkey dashboard and click the + tab to add a new script.
+3. Replace the editor contents with the full text of `omnibypass.user.js` from this repository.
+4. Save with Ctrl+S.
 
----
+## What it does
 
-## 🚀 Easy 1-Click Install
+### Timer speed
 
-To get everything running, just head over to the interactive setup page and hit the install button:
+Off by default. When it is on, countdowns finish sooner by a multiplier you set (5x to start, adjustable from 2x to 50x). It scales `setTimeout`, `setInterval`, `Date`, `performance.now` and `requestAnimationFrame` together, so countdowns that count ticks and countdowns that compare against an end time both speed up. The page still sees time pass normally; it just arrives faster.
 
-👉 [Go to the Setup Page & Install](https://akshat96af.github.io/omnibypass/)
+Changing the multiplier affects timers started afterwards, so reload the page if a countdown is already running. Timers inside Web Workers can't be reached from a userscript, and a site whose server enforces the wait will still reject a link requested too early.
 
----
+### Ad blocker
 
-## 🛠️ Doing it manually?
+On by default. It blocks pop-ups to known ad domains, removes ad scripts and iframes from those domains, clears invisible click-catching overlays and "disable your ad blocker" walls, and gives you back right click and copy on pages that disable them. Links that try to open a new tab open in the current one instead. Ctrl, Cmd or Shift plus click still opens a new tab, and pop-ups that ask for a specific window size (login and payment windows) are left alone.
 
-If you prefer to add the code yourself, just follow these quick steps:
+### Auto click and auto scroll
 
-### Step 1: Grab Tampermonkey
-You'll need a script manager extension installed on your desktop browser first:
-* [Get Tampermonkey here](https://www.tampermonkey.net/)
+Both are off by default. Auto click presses buttons such as Get Link, Continue and Download as soon as they stop looking disabled, and submits token forms. If the site answers with a "too fast" or "bad request" alert, it waits and retries up to five times, then hands control back to you. Auto scroll brings the countdown or the active button into view.
 
-### Step 2: Paste the Code
-1. Click the Tampermonkey icon in your browser bar and open your **Dashboard**.
-2. Click the **+ (Add Script)** tab (or head over to **Utilities**).
-3. Copy all the raw code from the `omnibypass.user.js` file in this repository.
-4. Paste it completely into the Tampermonkey code editor.
-5. Hit `Ctrl + S` (or click **File -> Save**).
+### Target link finder
 
----
+The script looks for the final link on the page: known file hosts such as Google Drive, Mega, MediaFire, Pixeldrain and Gofile, "direct download" buttons, links to files like .zip or .mkv, and links hidden in base64 inside inline scripts. Only http and https links are accepted. When it finds one, the panel shows a card with the link and a Copy link button, and the minimized button gets a green dot.
 
-## 🎛️ Hotkeys
+### Kill animations
 
-You don't even have to open the control panel while browsing—you can just tap these numbers on your keyboard to switch things on and off on the fly:
+Off by default. Turns off CSS animations and transitions and removes canvas and particle effects. Some pages use a canvas for real content, so turn this off if something looks broken.
 
-| Key | What it toggles |
+## Cloudflare and CAPTCHAs
+
+On a Cloudflare "Verify you are human" or "Just a moment" page, the script stops completely: it puts back every browser function it changed, shuts off its observers and removes its panel, so the check runs untouched. When the check passes, the site reloads and the script starts normally on the real page. On pages that only embed a CAPTCHA widget (reCAPTCHA, hCaptcha, Turnstile), it pauses timer speed and pop-up blocking and keeps working otherwise.
+
+Cloudflare changes its pages from time to time. If a check keeps reloading on some site, add an `@exclude` line for that site in the script header, for example `// @exclude *://example.com/*`, and open an issue so I can improve the detection.
+
+## The panel
+
+The panel sits at the bottom right. The minus button shrinks it to a round button, and it remembers that choice between visits. The reset button restores every setting to its default; click it twice within a few seconds to confirm. Settings are stored by Tampermonkey.
+
+## Hotkeys
+
+Press a number key to flip a feature without opening the panel.
+
+| Key | Toggles |
 | :---: | :--- |
-| **`1`** | **5x Fast-Forward Timer** |
-| **`2`** | **Auto Scroll** straight to the active counter |
-| **`3`** | **Auto Click** for links/buttons |
-| **`4`** | **Ad Blocker Shield** |
-| **`5`** | Open the extracted **target download link** right away |
+| 1 | Timer speed |
+| 2 | Auto scroll |
+| 3 | Auto click |
+| 4 | Ad blocker |
+| 5 | Kill animations |
+| 6 | Opens the target link, once one is found |
 
-*Note: The script is smart enough to pause these shortcuts automatically whenever you're actively typing in a search box, comment area, or text field.*
+The keys are ignored while you are typing in a text field, a search box, a dropdown or an editable area, and when Ctrl, Cmd or Alt is held.
+
+## Sites it leaves alone
+
+It stays off on Google (including Gmail, Docs and Drive), YouTube, GitHub, Stack Overflow, ChatGPT, Claude, WhatsApp Web, Instagram, X and Twitter, Reddit, Amazon, Flipkart, Microsoft login, Netflix and Spotify, so your normal logins and browsing don't break. The list is in the `@exclude` lines at the top of the script, and you can add your own.
+
+## A note on use
+
+OmniBypass only changes what happens in your own browser. Use it on pages you are allowed to use, and respect the sites you visit.
